@@ -1,28 +1,33 @@
-
-
 import pandas as pd
-# Importing the dataset and preprocessing
-dataset = pd.read_csv('C:\\Users\\DATA\Desktop\\AIR QUALITY MADRID\\csvs_per_year\madrid_2002.csv')
-
-dataset.info()
-datasets = dataset.drop(['date','station'],axis=1)
-dataset.fillna(dataset.mean(), inplace=True)
-datasets['Target'] = datasets['CO']
-features = datasets
-labels = datasets['CO'].values
-features = features.values
-
-# Splitting the dataset into the Training set and Test set
-from sklearn.cross_validation import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.3, random_state = 0)
-
-
-# Fitting Simple Linear Regression to the Training set
+from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-regressor = LinearRegression()
-regressor.fit(X_train, y_train)
-print(X_test)
-# Predicting the Test set results
-y_pred = regressor.predict(X_test)
-print(y_pred)
+from sklearn.metrics import mean_squared_error
 
+# Load data
+data = pd.read_csv('datos01.csv', delimiter=';')
+
+# Preprocess data
+daily_columns = [f"D{i:02}" for i in range(1, 32)]
+for column in daily_columns:
+    data[column].fillna(data[column].mean(), inplace=True)
+data['monthly_avg'] = data[daily_columns].mean(axis=1)
+data_cleaned = data.drop(daily_columns + [f"V{i:02}" for i in range(1, 32)], axis=1)
+
+# Feature Engineering
+data_cleaned['year_month'] = data_cleaned['ANO']*100 + data_cleaned['MES']
+
+# Features and Target
+X = data_cleaned[['PROVINCIA', 'MUNICIPIO', 'ESTACION', 'MAGNITUD', 'ANO', 'MES', 'year_month']]
+y = data_cleaned['monthly_avg']
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Model Building and Prediction
+model = LinearRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+# Calculate RMSE
+rmse = mean_squared_error(y_test, y_pred, squared=False)
+print("RMSE:", rmse)
